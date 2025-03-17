@@ -1,5 +1,5 @@
 from logging.config import fileConfig
-
+import os
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -24,6 +24,16 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+# Set the SQLAlchemy URL from environment variables
+db_host = os.getenv("APP_DATABASE_HOST")
+db_user = os.getenv("APP_DATABASE_USERNAME")
+db_password = os.getenv("APP_DATABASE_PASSWORD")
+db_name = os.getenv("APP_DATABASE_NAME")
+db_url = f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}"
+
+# Override the SQLAlchemy URL in the config
+config.set_main_option("sqlalchemy.url", db_url)
 
 
 def run_migrations_offline() -> None:
