@@ -4,6 +4,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from models import User
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,9 +17,9 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# target_metadata = Base.metadata
+# target_metadata.add_entity(User)
+target_metadata = [User.metadata]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -67,6 +68,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # 追記
+    url = config.get_main_option("sqlalchemy.url")
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -75,7 +79,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            url=url,
+            connection=connection,
+            target_metadata=target_metadata,
         )
 
         with context.begin_transaction():

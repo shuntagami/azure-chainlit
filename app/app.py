@@ -2,7 +2,7 @@ import os
 import chainlit as cl
 from fastapi import Request, Response
 from openai import OpenAI
-from database import get_db
+from settings import get_db
 from sqlalchemy import text
 
 # OpenAI クライアントの初期化
