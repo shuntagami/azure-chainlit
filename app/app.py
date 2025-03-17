@@ -1,8 +1,20 @@
 import os
 import chainlit as cl
+from fastapi import Request, Response
 from openai import OpenAI
 
+# OpenAI クライアントの初期化
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# chainlit.server から FastAPI アプリを取得
+from chainlit.server import app
+
+# ヘルスチェック用のミドルウェアを追加
+@app.middleware("http")
+async def health_check_middleware(request: Request, call_next):
+    if request.url.path == "/api/health":
+        return Response(content='{"status": "ok"}', media_type="application/json")
+    return await call_next(request)
 
 @cl.on_chat_start
 async def start():
