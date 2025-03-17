@@ -1,4 +1,4 @@
-.PHONY: migrate-create migrate-up migrate-down migrate-current migrate-history migrate-help
+.PHONY: migrate-create migrate-up migrate-down migrate-current migrate-history migrate-reset migrate-help
 
 # マイグレーション関連コマンド
 migrate-create:
@@ -17,6 +17,11 @@ migrate-current:
 migrate-history:
 	docker compose run --rm chainlit-app alembic history
 
+migrate-reset:
+	docker compose down -v
+	docker compose up -d db
+	docker compose run --rm chainlit-app alembic upgrade head
+
 migrate-help:
 	@echo "マイグレーションコマンド:"
 	@echo "  make migrate-create  - 新しいマイグレーションを作成"
@@ -24,3 +29,4 @@ migrate-help:
 	@echo "  make migrate-down    - 1つ前のバージョンに戻す"
 	@echo "  make migrate-current - 現在のマイグレーションバージョンを表示"
 	@echo "  make migrate-history - マイグレーション履歴を表示"
+	@echo "  make migrate-reset   - データベースを削除して再作成し、マイグレーションを適用"
