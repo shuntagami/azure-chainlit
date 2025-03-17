@@ -2,6 +2,8 @@ import os
 import chainlit as cl
 from fastapi import Request, Response
 from openai import OpenAI
+from database import get_db
+from sqlalchemy import text
 
 # OpenAI クライアントの初期化
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -9,11 +11,21 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # chainlit.server から FastAPI アプリを取得
 from chainlit.server import app
 
-# ヘルスチェック用のミドルウェアを追加
+# Health check middleware
 @app.middleware("http")
 async def health_check_middleware(request: Request, call_next):
     if request.url.path == "/api/health":
-        return Response(content='{"status": "ok"}', media_type="application/json")
+        try:
+            # Get database session
+            db = next(get_db())
+            # Execute simple query to check database connection
+            db.execute(text("SELECT 1"))
+            return Response(content='{"status": "ok", "database": "connected"}', media_type="application/json")
+        except Exception as e:
+            error_message = str(e)
+            return Response(content=f'{{"status": "error", "database": "disconnected", "error": "{error_message}"}}',
+                           media_type="application/json",
+                           status_code=500)
     return await call_next(request)
 
 @cl.on_chat_start
