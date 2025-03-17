@@ -11,6 +11,7 @@ services:
       APP_DATABASE_USERNAME: "postgres"
       APP_DATABASE_PASSWORD: "password"
       APP_DATABASE_NAME: "chainlit"
+      TZ: "Asia/Tokyo"
     ports:
       - "8000:8000"
     volumes:
@@ -24,6 +25,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: chainlit
+      TZ: "Asia/Tokyo"
     ports:
       - "5432:5432"
     volumes:
