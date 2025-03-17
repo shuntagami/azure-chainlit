@@ -9,7 +9,9 @@ services:
       AZURE_OPENAI_ENDPOINT: "https://lecture-openai.openai.azure.com/"
       APP_DATABASE_HOST: "db"
       APP_DATABASE_USERNAME: "postgres"
-      APP_DATABASE_PASSWORD: "postgres"
+      APP_DATABASE_PASSWORD: "password"
+      APP_DATABASE_NAME: "chainlit"
+      TZ: "Asia/Tokyo"
     ports:
       - "8000:8000"
     volumes:
@@ -21,8 +23,9 @@ services:
     image: postgres:latest
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: chainlit
+      TZ: "Asia/Tokyo"
     ports:
       - "5432:5432"
     volumes:
