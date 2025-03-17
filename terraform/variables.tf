@@ -75,3 +75,22 @@ variable "acr_name" {
   description = "The name of the Azure Container Registry"
   default     = "acrchainlitapp"
 }
+
+# env var used in the app
+variable "openai_api_key" {
+  description = "The API key for the OpenAI API"
+  type        = string
+  sensitive   = true
+}
+
+variable "openai_api_version" {
+  description = "The version of the OpenAI API"
+  type        = string
+  default     = "2025-02-01-preview"
+}
+
+variable "azure_openai_endpoint" {
+  description = "The endpoint for the Azure OpenAI API"
+  type        = string
+  sensitive   = true
+}

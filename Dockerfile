@@ -15,4 +15,6 @@ RUN poetry install --no-interaction --no-ansi --only main --no-root
 # アプリケーションファイルのコピー
 COPY app/ ./
 
-CMD ["chainlit", "run", "app.py", "--host", "0.0.0.0"]
+EXPOSE 8000
+
+CMD ["chainlit", "run", "app.py", "--host", "0.0.0.0", "--port", "8000"]

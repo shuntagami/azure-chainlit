@@ -38,21 +38,25 @@ resource "azurerm_linux_web_app" "this" {
 
   site_config {
     # ACRへのアクセスをマネージドIDで行う
+    app_command_line                        = "chainlit run app.py --host 0.0.0.0 --port 8000"
     container_registry_use_managed_identity = true
 
     # Dockerイメージの指定 (ACRのログインサーバーを使う)
     application_stack {
-      docker_image_name = "${azurerm_container_registry.this.login_server}/${var.docker_image_name}:${var.docker_image_tag}"
+      docker_image_name   = "${var.docker_image_name}:${var.docker_image_tag}"
+      docker_registry_url = "https://${azurerm_container_registry.this.login_server}"
     }
 
-    always_on  = true
-    ftps_state = "Disabled"
+    always_on = true
   }
 
   # すでにマネージドIDを使うのであれば、DOCKER_REGISTRY_SERVER_USERNAMEやPASSWORDは不要。
   # ただし環境変数として参照する場合は別ですが、イメージPull目的であれば削除してOK。
   app_settings = {
-    "WEBSITES_PORT" = "8081"
+    WEBSITES_PORT  = "8000"
+    OPENAI_API_KEY = var.openai_api_key
+    OPENAI_API_VERSION = var.openai_api_version
+    AZURE_OPENAI_ENDPOINT = var.azure_openai_endpoint
   }
 }
 
@@ -65,52 +69,3 @@ resource "azurerm_role_assignment" "acr_pull" {
   # principal_id には、Web Appで有効になったマネージドIDのprincipal_idを指定
   principal_id = azurerm_linux_web_app.this.identity[0].principal_id
 }
-
-
-# ACRが完全に作成された後にDockerイメージをビルド・プッシュする
-# resource "null_resource" "docker_build_push" {
-#   depends_on = [azurerm_container_registry.this]
-
-#   # リソースグループやACRの名前が変更されたとき、またはDockerfileが変更されたときに再実行
-#   triggers = {
-#     acr_id = azurerm_container_registry.this.id
-#     # 必要に応じてDockerfileのハッシュ値を追加することも可能
-#     # dockerfile_hash = filemd5("${path.module}/../Dockerfile")
-#   }
-
-#   provisioner "local-exec" {
-#     command = <<-EOT
-#       az login --service-principal -u ${var.client_id} -p ${var.client_secret} --tenant ${var.tenant_id}
-#       az acr login --name ${azurerm_container_registry.this.name}
-
-#       # ローカルビルド＆プッシュの場合
-#       docker build -t ${azurerm_container_registry.this.login_server}/${var.docker_image_name}:${var.docker_image_tag} -f ../Dockerfile ..
-#       docker push ${azurerm_container_registry.this.login_server}/${var.docker_image_name}:${var.docker_image_tag}
-
-#       # または、ACR Tasksを使用する場合（コメントアウトを外す）
-#       # cd .. && az acr build --registry ${azurerm_container_registry.this.name} --image ${var.docker_image_name}:${var.docker_image_tag} --file Dockerfile .
-#     EOT
-#   }
-# }
-
-# イメージがプッシュされた後にWebアプリを更新する
-# これにより、新しいイメージが確実にデプロイされる
-# resource "null_resource" "restart_webapp" {
-#   depends_on = [
-#     azurerm_linux_web_app.this,
-#     azurerm_role_assignment.acr_pull,
-#     null_resource.docker_build_push
-#   ]
-
-#   triggers = {
-#     # DockerイメージビルドリソースのIDを監視
-#     docker_build_id = null_resource.docker_build_push.id
-#   }
-
-#   provisioner "local-exec" {
-#     command = <<-EOT
-#       az login --service-principal -u ${var.client_id} -p ${var.client_secret} --tenant ${var.tenant_id}
-#       az webapp restart --name ${azurerm_linux_web_app.this.name} --resource-group ${azurerm_resource_group.this.name}
-#     EOT
-#   }
-# }
