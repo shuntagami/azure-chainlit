@@ -17,3 +17,14 @@ output "resource_group_name" {
   description = "The name of the resource group"
   value       = azurerm_resource_group.this.name
 }
+
+output "postgresql_server_fqdn" {
+  description = "The fully qualified domain name of the PostgreSQL server"
+  value       = azurerm_postgresql_flexible_server.this.fqdn
+}
+
+output "postgresql_connection_string" {
+  description = "The connection string for the PostgreSQL database"
+  value       = "postgresql://${var.postgresql_admin_username}:${var.postgresql_admin_password}@${azurerm_postgresql_flexible_server.this.fqdn}:5432/chainlit"
+  sensitive   = true
+}

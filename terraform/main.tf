@@ -48,15 +48,22 @@ resource "azurerm_linux_web_app" "this" {
     }
 
     always_on = true
+
+    # ヘルスチェックの設定
+    health_check_path                = "/api/health"
+    health_check_eviction_time_in_min = 2
   }
 
   # すでにマネージドIDを使うのであれば、DOCKER_REGISTRY_SERVER_USERNAMEやPASSWORDは不要。
   # ただし環境変数として参照する場合は別ですが、イメージPull目的であれば削除してOK。
   app_settings = {
-    WEBSITES_PORT  = "8000"
-    OPENAI_API_KEY = var.openai_api_key
-    OPENAI_API_VERSION = var.openai_api_version
+    WEBSITES_PORT         = "8000"
+    OPENAI_API_KEY        = var.openai_api_key
+    OPENAI_API_VERSION    = var.openai_api_version
     AZURE_OPENAI_ENDPOINT = var.azure_openai_endpoint
+    APP_DATABASE_HOST     = azurerm_postgresql_flexible_server.this.fqdn
+    APP_DATABASE_USERNAME = var.postgresql_admin_username
+    APP_DATABASE_PASSWORD = var.postgresql_admin_password
   }
 }
 
@@ -68,4 +75,44 @@ resource "azurerm_role_assignment" "acr_pull" {
 
   # principal_id には、Web Appで有効になったマネージドIDのprincipal_idを指定
   principal_id = azurerm_linux_web_app.this.identity[0].principal_id
+}
+
+# PostgreSQL Server
+resource "azurerm_postgresql_flexible_server" "this" {
+  name                = var.postgresql_server_name
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+
+  sku_name   = "B_Standard_B1ms" # Basic tier
+  storage_mb = 32768             # 32GB
+
+  backup_retention_days        = 7
+  geo_redundant_backup_enabled = false
+
+  administrator_login    = var.postgresql_admin_username
+  administrator_password = var.postgresql_admin_password
+  version                = "14"
+
+  zone = "1" # 可用性ゾーン
+
+  # 高可用性が必要な場合は以下を有効化
+  # high_availability {
+  #   mode = "ZoneRedundant"
+  # }
+}
+
+# PostgreSQL Database
+resource "azurerm_postgresql_flexible_server_database" "this" {
+  name      = "chainlit"
+  server_id = azurerm_postgresql_flexible_server.this.id
+  charset   = "UTF8"
+  collation = "en_US.utf8"
+}
+
+# PostgreSQL Firewall Rule - Allow Azure Services
+resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure_services" {
+  name             = "AllowAzureServices"
+  server_id        = azurerm_postgresql_flexible_server.this.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0" # This special value allows Azure services to access the server
 }

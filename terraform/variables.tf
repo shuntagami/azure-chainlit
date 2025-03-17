@@ -94,3 +94,21 @@ variable "azure_openai_endpoint" {
   type        = string
   sensitive   = true
 }
+
+variable "postgresql_server_name" {
+  description = "The name of the PostgreSQL server"
+  type        = string
+  default     = "psql-chainlit"
+}
+
+variable "postgresql_admin_username" {
+  description = "The administrator username for the PostgreSQL server"
+  type        = string
+  default     = "postgres"
+}
+
+variable "postgresql_admin_password" {
+  description = "The administrator password for the PostgreSQL server"
+  type        = string
+  sensitive   = true
+}

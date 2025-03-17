@@ -2,3 +2,10 @@ subscription_id = ""
 client_id       = ""
 client_secret   = ""
 tenant_id       = ""
+
+# OpenAI settings
+openai_api_key = ""
+azure_openai_endpoint = ""
+
+# PostgreSQL settings
+postgresql_admin_password = "StrongPassword123!"  # Change this to a secure password
