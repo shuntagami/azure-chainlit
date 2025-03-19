@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from sqlalchemy import Column, DateTime, Integer, String, TEXT, UniqueConstraint
