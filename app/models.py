@@ -70,6 +70,7 @@ class Element(Base):
     language = Column(String)
     forId = Column(UUID(as_uuid=True))
     mime = Column(String)
+    props = Column(Text)
 
     def __repr__(self):
         return f"<Element(id={self.id}, name={self.name}, type={self.type})>"
