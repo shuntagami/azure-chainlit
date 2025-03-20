@@ -1,19 +1,11 @@
-import os
 import chainlit as cl
 import chainlit.data as cl_data
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.azure_blob import AzureBlobStorageClient
 from openai import OpenAI
 from fastapi import Request, Response
-from settings import get_db
 from sqlalchemy import text
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
-
-AZURE_STORAGE_ACCOUNT = os.getenv("AZURE_STORAGE_ACCOUNT")
-AZURE_STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY")
-BLOB_CONTAINER_NAME = os.getenv("BLOB_CONTAINER_NAME")
+from settings import get_db, Config
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
@@ -35,25 +27,17 @@ def patched_from_connection_string(connection_string, **kwargs):
 # モンキーパッチ適用
 BlobServiceClient.from_connection_string = patched_from_connection_string
 
-DB_HOST = os.getenv("APP_DATABASE_HOST")
-DB_USERNAME = os.getenv("APP_DATABASE_USERNAME")
-DB_PASSWORD = os.getenv("APP_DATABASE_PASSWORD")
-DB_NAME = os.getenv("APP_DATABASE_NAME")
-DATABASE_URL = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
-
 # OpenAI クライアントの初期化
 openai_client = OpenAI(
-    api_key=OPENAI_API_KEY,
+    api_key=Config.OPENAI_API_KEY,
 )
-
-conn_string = f"postgresql+asyncpg://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
 
 storage_client = AzureBlobStorageClient(
-    container_name=BLOB_CONTAINER_NAME,
-    storage_account=AZURE_STORAGE_ACCOUNT,
-    storage_key=AZURE_STORAGE_KEY,
+    container_name=Config.BLOB_CONTAINER_NAME,
+    storage_account=Config.AZURE_STORAGE_ACCOUNT,
+    storage_key=Config.AZURE_STORAGE_KEY,
 )
-cl_data._data_layer = SQLAlchemyDataLayer(conninfo=conn_string, storage_provider=storage_client, ssl_require=False)
+cl_data._data_layer = SQLAlchemyDataLayer(conninfo=Config.ASYNC_DATABASE_URL, storage_provider=storage_client, ssl_require=False)
 
 # chainlit.server から FastAPI アプリを取得
 from chainlit.server import app
@@ -111,7 +95,7 @@ async def main(message: cl.Message):
 
 @cl.password_auth_callback
 def auth_callback(username: str, password: str) -> bool:
-  if (
+    if (
         username in ["shuntagami23@gmail.com"]  # fmt: skip
         and password == "password123"
     ):
@@ -119,5 +103,5 @@ def auth_callback(username: str, password: str) -> bool:
             identifier=username,
             metadata={"role": "admin", "provider": "credentials"},
         )
-  else:
-      return None
+    else:
+        return False  # Fixed return type issue: return False instead of None

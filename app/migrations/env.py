@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from models import User
-
+from settings import Config
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -26,12 +26,7 @@ target_metadata = [User.metadata]
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-# Set the SQLAlchemy URL from environment variables
-db_host = os.getenv("APP_DATABASE_HOST")
-db_user = os.getenv("APP_DATABASE_USERNAME")
-db_password = os.getenv("APP_DATABASE_PASSWORD")
-db_name = os.getenv("APP_DATABASE_NAME")
-db_url = f"postgresql://{db_user}:{db_password}@{db_host}/{db_name}"
+db_url = Config.DATABASE_URL
 
 # Override the SQLAlchemy URL in the config
 config.set_main_option("sqlalchemy.url", db_url)
