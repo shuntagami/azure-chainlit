@@ -1,4 +1,4 @@
-.PHONY: migrate-create migrate-up migrate-down migrate-current migrate-history migrate-reset migrate-help
+.PHONY: migrate-create migrate-up migrate-down migrate-current migrate-history migrate-reset migrate-help seed seed-help
 
 # マイグレーション関連コマンド
 migrate-create:
@@ -19,7 +19,9 @@ migrate-history:
 
 migrate-reset:
 	docker compose down -v
+	rm -f app/migrations/versions/*.py
 	docker compose up -d db
+	docker compose run --rm chainlit-app alembic revision --autogenerate -m "initial"
 	docker compose run --rm chainlit-app alembic upgrade head
 
 migrate-help:
@@ -30,3 +32,17 @@ migrate-help:
 	@echo "  make migrate-current - 現在のマイグレーションバージョンを表示"
 	@echo "  make migrate-history - マイグレーション履歴を表示"
 	@echo "  make migrate-reset   - データベースを削除して再作成し、マイグレーションを適用"
+
+# シード関連コマンド
+seed:
+	docker compose run --rm chainlit-app python /app/seeds.py
+
+seed-custom:
+	@read -p "メールアドレスを入力: " email; \
+	read -p "パスワードを入力: " password; \
+	docker compose run --rm chainlit-app python /app/seeds.py --email="$$email" --password="$$password"
+
+seed-help:
+	@echo "シードコマンド:"
+	@echo "  make seed          - デフォルトユーザー(shuntagami23@gmail.com, password123)を登録"
+	@echo "  make seed-custom   - カスタムユーザーを登録"
