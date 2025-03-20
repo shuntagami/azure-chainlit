@@ -67,7 +67,7 @@ resource "azurerm_linux_web_app" "this" {
     APP_DATABASE_NAME     = var.postgresql_database_name
     WEBSITES_SSH_ENABLED  = "true"
     AZURE_STORAGE_ACCOUNT = var.azure_storage_account_name
-    AZURE_STORAGE_KEY     = var.azure_storage_account_key
+    AZURE_STORAGE_KEY     = azurerm_storage_account.this.primary_access_key
     BLOB_CONTAINER_NAME   = var.blob_container_name
     CHAINLIT_AUTH_SECRET  = var.chainlit_auth_secret
   }
@@ -140,4 +140,19 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure_service
   server_id        = azurerm_postgresql_flexible_server.this.id
   start_ip_address = "0.0.0.0"
   end_ip_address   = "0.0.0.0" # This special value allows Azure services to access the server
+}
+
+# Azure Storage Account
+resource "azurerm_storage_account" "this" {
+  name                     = var.azure_storage_account_name
+  resource_group_name      = azurerm_resource_group.this.name
+  location                 = azurerm_resource_group.this.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_storage_container" "this" {
+  name                  = var.blob_container_name
+  storage_account_id    = azurerm_storage_account.this.id
+  container_access_type = "private"
 }

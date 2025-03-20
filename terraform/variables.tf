@@ -121,7 +121,6 @@ variable "postgresql_admin_password" {
 variable "azure_storage_account_name" {
   description = "The name of the Azure Storage Account"
   type        = string
-  default     = "devstoreaccount1"
 }
 
 variable "azure_storage_account_key" {
