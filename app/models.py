@@ -50,6 +50,7 @@ class Step(Base):
     showInput = Column(String)
     language = Column(String)
     indent = Column(Integer)
+    defaultOpen = Column(Boolean)
 
     def __repr__(self):
         return f"<Step(id={self.id}, name={self.name}, type={self.type})>"
