@@ -64,6 +64,12 @@ resource "azurerm_linux_web_app" "this" {
     APP_DATABASE_HOST     = azurerm_postgresql_flexible_server.this.fqdn
     APP_DATABASE_USERNAME = var.postgresql_admin_username
     APP_DATABASE_PASSWORD = var.postgresql_admin_password
+    APP_DATABASE_NAME     = "shuntagami-chainlit-app"
+    WEBSITES_SSH_ENABLED  = "true"
+    AZURE_STORAGE_ACCOUNT = var.azure_storage_account_name
+    AZURE_STORAGE_KEY     = var.azure_storage_account_key
+    BLOB_CONTAINER_NAME   = var.blob_container_name
+    CHAINLIT_AUTH_SECRET  = var.chainlit_auth_secret
   }
 }
 

@@ -112,3 +112,28 @@ variable "postgresql_admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "azure_storage_account_name" {
+  description = "The name of the Azure Storage Account"
+  type        = string
+  default     = "devstoreaccount1"
+}
+
+variable "azure_storage_account_key" {
+  description = "The access key for the Azure Storage Account"
+  type        = string
+  default     = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+  sensitive   = true
+}
+
+variable "blob_container_name" {
+  description = "The name of the Blob Container"
+  type        = string
+  default     = "shuntagami-chainlit-app"
+}
+
+variable "chainlit_auth_secret" {
+  description = "The secret for the Chainlit Auth"
+  type        = string
+  sensitive   = true
+}
