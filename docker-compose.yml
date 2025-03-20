@@ -6,11 +6,13 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_API_VERSION: "2025-02-01-preview"
-      AZURE_OPENAI_ENDPOINT: "https://lecture-openai.openai.azure.com/"
       APP_DATABASE_HOST: "db"
       APP_DATABASE_USERNAME: "postgres"
       APP_DATABASE_PASSWORD: "password"
       APP_DATABASE_NAME: "chainlit"
+      AZURE_STORAGE_ACCOUNT: "devstoreaccount1"
+      AZURE_STORAGE_KEY: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+      BLOB_CONTAINER_NAME: "shuntagami-chainlit-app"
       CHAINLIT_AUTH_SECRET: "Z,KKQ9_xYuteGo:WBbfY:0JXfX^Q~oEZb-m,dp0z6rdvsM7v2YQd^HhsemxmRf.Q"
       TZ: "Asia/Tokyo"
     ports:
@@ -19,7 +21,7 @@ services:
       - ./app:/app
     depends_on:
       - db
-
+      - azurite
   db:
     image: postgres:latest
     environment:
@@ -31,6 +33,35 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: azurite
+    restart: always
+    command: azurite --loose -l /data --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+    environment:
+      - "AZURITE_ACCOUNTS=devstoreaccount1:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - ./azurite:/data
+
+  phppgadmin:
+    image: dockage/phppgadmin:latest
+    container_name: phppgadmin
+    restart: always
+    environment:
+      - PHP_PG_ADMIN_SERVER_HOST=db
+      - PHP_PG_ADMIN_SERVER_PORT=5432
+      - PHP_PG_ADMIN_SERVER_DEFAULT_DB=chainlit
+      - PHP_PG_ADMIN_SERVER_USERNAME=postgres
+      - PHP_PG_ADMIN_SERVER_PASSWORD=password
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
 
 volumes:
   postgres_data:
