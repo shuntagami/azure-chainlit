@@ -38,30 +38,11 @@ services:
     image: mcr.microsoft.com/azure-storage/azurite:latest
     container_name: azurite
     restart: always
-    command: azurite --loose -l /data --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
-    environment:
-      - "AZURITE_ACCOUNTS=devstoreaccount1:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
     ports:
       - "10000:10000"
       - "10001:10001"
       - "10002:10002"
     volumes:
       - ./azurite:/data
-
-  phppgadmin:
-    image: dockage/phppgadmin:latest
-    container_name: phppgadmin
-    restart: always
-    environment:
-      - PHP_PG_ADMIN_SERVER_HOST=db
-      - PHP_PG_ADMIN_SERVER_PORT=5432
-      - PHP_PG_ADMIN_SERVER_DEFAULT_DB=chainlit
-      - PHP_PG_ADMIN_SERVER_USERNAME=postgres
-      - PHP_PG_ADMIN_SERVER_PASSWORD=password
-    ports:
-      - "8080:80"
-    depends_on:
-      - db
-
 volumes:
   postgres_data:

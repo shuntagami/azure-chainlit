@@ -3,9 +3,7 @@ import chainlit as cl
 import chainlit.data as cl_data
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.azure_blob import AzureBlobStorageClient
-
 from openai import OpenAI
-
 from fastapi import Request, Response
 from settings import get_db
 from sqlalchemy import text
@@ -13,10 +11,29 @@ from sqlalchemy import text
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
 
-# Azure Storage
 AZURE_STORAGE_ACCOUNT = os.getenv("AZURE_STORAGE_ACCOUNT")
 AZURE_STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY")
 BLOB_CONTAINER_NAME = os.getenv("BLOB_CONTAINER_NAME")
+
+# モンキーパッチの適用
+from azure.storage.blob.aio import BlobServiceClient
+original_from_connection_string = BlobServiceClient.from_connection_string
+
+def patched_from_connection_string(connection_string, **kwargs):
+    # Azuriteエミュレーター向けに接続文字列を変更
+    if "devstoreaccount1" in connection_string:
+        # ここでHTTPSからHTTPに変更
+        connection_string = connection_string.replace("DefaultEndpointsProtocol=https", "DefaultEndpointsProtocol=http")
+        # エンドポイントを追加
+        if "EndpointSuffix" in connection_string:
+            connection_string = connection_string.replace("EndpointSuffix=core.windows.net", "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1")
+        else:
+            connection_string += ";BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1"
+
+    return original_from_connection_string(connection_string, **kwargs)
+
+# モンキーパッチ適用
+BlobServiceClient.from_connection_string = patched_from_connection_string
 
 DB_HOST = os.getenv("APP_DATABASE_HOST")
 DB_USERNAME = os.getenv("APP_DATABASE_USERNAME")
@@ -31,14 +48,11 @@ openai_client = OpenAI(
 
 conn_string = f"postgresql+asyncpg://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
 
-# Azure Blob Storage configuration for local Azurite emulator
-print(AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_KEY, BLOB_CONTAINER_NAME)
 storage_client = AzureBlobStorageClient(
     container_name=BLOB_CONTAINER_NAME,
     storage_account=AZURE_STORAGE_ACCOUNT,
     storage_key=AZURE_STORAGE_KEY,
 )
-
 cl_data._data_layer = SQLAlchemyDataLayer(conninfo=conn_string, storage_provider=storage_client, ssl_require=False)
 
 # chainlit.server から FastAPI アプリを取得
