@@ -107,6 +107,11 @@ variable "postgresql_admin_username" {
   default     = "postgres"
 }
 
+variable "postgresql_database_name" {
+  description = "The name of the PostgreSQL database"
+  type        = string
+}
+
 variable "postgresql_admin_password" {
   description = "The administrator password for the PostgreSQL server"
   type        = string

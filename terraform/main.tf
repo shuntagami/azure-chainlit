@@ -64,7 +64,7 @@ resource "azurerm_linux_web_app" "this" {
     APP_DATABASE_HOST     = azurerm_postgresql_flexible_server.this.fqdn
     APP_DATABASE_USERNAME = var.postgresql_admin_username
     APP_DATABASE_PASSWORD = var.postgresql_admin_password
-    APP_DATABASE_NAME     = "shuntagami-chainlit-app"
+    APP_DATABASE_NAME     = var.postgresql_database_name
     WEBSITES_SSH_ENABLED  = "true"
     AZURE_STORAGE_ACCOUNT = var.azure_storage_account_name
     AZURE_STORAGE_KEY     = var.azure_storage_account_key
@@ -105,14 +105,33 @@ resource "azurerm_postgresql_flexible_server" "this" {
   # high_availability {
   #   mode = "ZoneRedundant"
   # }
+
+  # PostgreSQLサーバーの環境変数設定
+  # 注: PostgreSQL Flexible Serverでは直接環境変数を設定するリソースはありません
+  # 必要な設定はパラメータ設定で行います
+  # 例: postgresql.conf の設定を変更したい場合は以下のようなリソースを追加します
+  # azurerm_postgresql_flexible_server_configuration を使用
+  authentication {
+    active_directory_auth_enabled = true
+    tenant_id                     = var.tenant_id
+  }
 }
 
 # PostgreSQL Database
 resource "azurerm_postgresql_flexible_server_database" "this" {
-  name      = "chainlit"
+  name      = var.postgresql_database_name
   server_id = azurerm_postgresql_flexible_server.this.id
   charset   = "UTF8"
   collation = "en_US.utf8"
+}
+
+resource "azurerm_postgresql_flexible_server_active_directory_administrator" "app" {
+  server_name         = azurerm_postgresql_flexible_server.this.name
+  resource_group_name = azurerm_resource_group.this.name
+  tenant_id           = var.tenant_id
+  principal_name      = azurerm_linux_web_app.this.name
+  principal_type      = "ServicePrincipal"
+  object_id           = azurerm_linux_web_app.this.identity[0].principal_id
 }
 
 # PostgreSQL Firewall Rule - Allow Azure Services
