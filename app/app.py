@@ -4,8 +4,6 @@ from fastapi import Request, Response
 from openai import OpenAI
 from settings import get_db
 from sqlalchemy import text
-from auth import setup_auth_hooks, require_auth
-from models import User
 
 # OpenAI クライアントの初期化
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -30,21 +28,18 @@ async def health_check_middleware(request: Request, call_next):
                            status_code=500)
     return await call_next(request)
 
-# 認証フックの設定（auth.pyのon_chat_startフックも含む）
-setup_auth_hooks()
+@cl.on_chat_start
+async def start():
+    """チャットセッション開始時に実行される関数"""
+    cl.user_session.set(
+        "messages",
+        [{"role": "system", "content": "あなたは親切なAIアシスタントです。"}]
+    )
+    await cl.Message(content="こんにちは！何かお手伝いできることはありますか？").send()
 
-# メッセージ処理のフック
 @cl.on_message
-@require_auth
 async def main(message: cl.Message):
     """ユーザーメッセージを受け取った時に実行される関数"""
-    # メッセージ履歴の初期化（初回メッセージの場合）
-    if not cl.user_session.get("messages"):
-        cl.user_session.set(
-            "messages",
-            [{"role": "system", "content": "あなたは親切なAIアシスタントです。"}]
-        )
-
     # セッションから今までのメッセージ履歴を取得
     messages = cl.user_session.get("messages")
 

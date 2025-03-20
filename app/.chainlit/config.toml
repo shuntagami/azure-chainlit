@@ -92,10 +92,3 @@ cot = "full"
 
 [meta]
 generated_by = "2.4.1"
-
-# 認証設定の追加
-[auth]
-# 認証タイプをパスワードに設定
-type = "password"
-# ゲストが利用できるか
-guest_mode = false

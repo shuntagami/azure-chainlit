@@ -11,7 +11,6 @@ services:
       APP_DATABASE_USERNAME: "postgres"
       APP_DATABASE_PASSWORD: "password"
       APP_DATABASE_NAME: "chainlit"
-      CHAINLIT_AUTH_SECRET: "Z,KKQ9_xYuteGo:WBbfY:0JXfX^Q~oEZb-m,dp0z6rdvsM7v2YQd^HhsemxmRf.Q"
       TZ: "Asia/Tokyo"
     ports:
       - "8000:8000"
