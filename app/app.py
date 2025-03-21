@@ -6,6 +6,8 @@ from openai import OpenAI
 from fastapi import Request, Response
 from sqlalchemy import text
 from settings import get_db, Config
+import io
+from typing import Any, Dict, Union
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
@@ -24,8 +26,31 @@ def patched_from_connection_string(connection_string, **kwargs):
 
     return original_from_connection_string(connection_string, **kwargs)
 
+# AzureBlobStorageClientのupload_fileメソッドをモンキーパッチで上書き
+# https://github.com/Chainlit/chainlit/pull/2035
+original_upload_file = AzureBlobStorageClient.upload_file
+
+async def patched_upload_file(
+    self, object_key: str, data: Union[bytes, io.BytesIO], mime: str, overwrite: bool = False
+) -> Dict[str, Any]:
+    """モンキーパッチ版のアップロードメソッド - object_keyとurlを追加"""
+    try:
+        # 元のupload_file処理を呼び出す
+        result = await original_upload_file(self, object_key, data, mime, overwrite)
+
+        # 重要: object_keyとurlを追加
+        result["object_key"] = object_key
+
+        result["url"] = await self.get_read_url(object_key)
+
+        return result
+    except Exception as e:
+        # 例外をそのままraiseして元のコードと同じ振る舞いにする
+        raise Exception(f"Failed to upload file to Azure Blob Storage: {e!s}")
+
 # モンキーパッチ適用
 BlobServiceClient.from_connection_string = patched_from_connection_string
+AzureBlobStorageClient.upload_file = patched_upload_file
 
 # OpenAI クライアントの初期化
 openai_client = OpenAI(
