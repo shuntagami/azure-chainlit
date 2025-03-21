@@ -18,9 +18,9 @@ def patched_from_connection_string(connection_string, **kwargs):
         connection_string = connection_string.replace("DefaultEndpointsProtocol=https", "DefaultEndpointsProtocol=http")
         # エンドポイントを追加
         if "EndpointSuffix" in connection_string:
-            connection_string = connection_string.replace("EndpointSuffix=core.windows.net", "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1")
+            connection_string = connection_string.replace("EndpointSuffix=core.windows.net", "BlobEndpoint=http://azurite:10000/devstoreaccount1")
         else:
-            connection_string += ";BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1"
+            connection_string += ";BlobEndpoint=http://azurite:10000/devstoreaccount1"
 
     return original_from_connection_string(connection_string, **kwargs)
 
@@ -37,7 +37,7 @@ storage_client = AzureBlobStorageClient(
     storage_account=Config.AZURE_STORAGE_ACCOUNT,
     storage_key=Config.AZURE_STORAGE_KEY,
 )
-cl_data._data_layer = SQLAlchemyDataLayer(conninfo=Config.ASYNC_DATABASE_URL, storage_provider=storage_client, ssl_require=False)
+cl_data._data_layer = SQLAlchemyDataLayer(conninfo=Config.ASYNC_DATABASE_URL, storage_provider=storage_client)
 
 # chainlit.server から FastAPI アプリを取得
 from chainlit.server import app
