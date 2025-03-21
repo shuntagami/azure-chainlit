@@ -6,6 +6,8 @@ from openai import OpenAI
 from fastapi import Request, Response
 from sqlalchemy import text
 from settings import get_db, Config
+import io
+from typing import Any, Dict, Union
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
@@ -24,8 +26,48 @@ def patched_from_connection_string(connection_string, **kwargs):
 
     return original_from_connection_string(connection_string, **kwargs)
 
+# AzureBlobStorageClientのget_read_urlとupload_fileメソッドをモンキーパッチで上書き
+original_get_read_url = AzureBlobStorageClient.get_read_url
+original_upload_file = AzureBlobStorageClient.upload_file
+
+async def patched_get_read_url(self, object_key: str) -> str:
+    """モンキーパッチ版のURL取得メソッド - Azuriteエミュレータに対応"""
+    # Azuriteエミュレータ環境の場合は直接URLを返す
+    if "devstoreaccount1" in self.storage_account:
+        # ローカルAzuriteエミュレータ - ブラウザからアクセス可能なURL
+        return f"http://localhost:10000/{self.storage_account}/{self.container_name}/{object_key}"
+
+    # 本番環境では元のメソッドを使用（SASトークン付きURLを生成）
+    return await original_get_read_url(self, object_key)
+
+async def patched_upload_file(
+    self, object_key: str, data: Union[bytes, io.BytesIO], mime: str, overwrite: bool = False
+) -> Dict[str, Any]:
+    """モンキーパッチ版のアップロードメソッド - object_keyとurlを追加"""
+    try:
+        # 元のupload_file処理を呼び出す
+        result = await original_upload_file(self, object_key, data, mime, overwrite)
+
+        # 重要: object_keyとurlを追加
+        result["object_key"] = object_key
+
+        # 環境に応じたURLを生成
+        if "devstoreaccount1" in self.storage_account:
+            # 開発環境: ブラウザからアクセス可能なURL
+            result["url"] = f"http://localhost:10000/{self.storage_account}/{self.container_name}/{object_key}"
+        else:
+            # 本番環境: get_read_urlメソッドからURLを取得
+            result["url"] = await self.get_read_url(object_key)
+
+        return result
+    except Exception as e:
+        # 例外をそのままraiseして元のコードと同じ振る舞いにする
+        raise Exception(f"Failed to upload file to Azure Blob Storage: {e!s}")
+
 # モンキーパッチ適用
 BlobServiceClient.from_connection_string = patched_from_connection_string
+AzureBlobStorageClient.get_read_url = patched_get_read_url
+AzureBlobStorageClient.upload_file = patched_upload_file
 
 # OpenAI クライアントの初期化
 openai_client = OpenAI(
