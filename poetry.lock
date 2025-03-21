@@ -479,13 +479,13 @@ pycparser = "*"
 
 [[package]]
 name = "chainlit"
-version = "2.4.1"
+version = "2.4.201"
 description = "Build Conversational AI."
 optional = false
 python-versions = "<4.0.0,>=3.10"
 files = [
-    {file = "chainlit-2.4.1-py3-none-any.whl", hash = "sha256:39235662b46a2140c28329ca11eb8b7565ad251d008064ef3d07acdd2e947b33"},
-    {file = "chainlit-2.4.1.tar.gz", hash = "sha256:5f4c7092b32cf76b52709427dbf532ee11b084aacc6b9ab1aede1da390eb40e9"},
+    {file = "chainlit-2.4.201-py3-none-any.whl", hash = "sha256:d122f62a28970b9893f9ef9999d14e0edcaf0e789a29618f4956682c5e187db4"},
+    {file = "chainlit-2.4.201.tar.gz", hash = "sha256:50c4c2b8770f23a3140199f547d67ce890b7ba7db00be6e579fa21b007813ad9"},
 ]
 
 [package.dependencies]
