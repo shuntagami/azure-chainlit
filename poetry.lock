@@ -479,13 +479,13 @@ pycparser = "*"
 
 [[package]]
 name = "chainlit"
-version = "2.4.201"
+version = "2.4.3"
 description = "Build Conversational AI."
 optional = false
 python-versions = "<4.0.0,>=3.10"
 files = [
-    {file = "chainlit-2.4.201-py3-none-any.whl", hash = "sha256:d122f62a28970b9893f9ef9999d14e0edcaf0e789a29618f4956682c5e187db4"},
-    {file = "chainlit-2.4.201.tar.gz", hash = "sha256:50c4c2b8770f23a3140199f547d67ce890b7ba7db00be6e579fa21b007813ad9"},
+    {file = "chainlit-2.4.3-py3-none-any.whl", hash = "sha256:803bd8fca387b387efa1c94eb9a95e525abba18e256038c880eff3b320dc0448"},
+    {file = "chainlit-2.4.3.tar.gz", hash = "sha256:e2cefc9781d53f4682a288e1193b596a4785e2db42d1a96d3b6f3871049b321f"},
 ]
 
 [package.dependencies]
@@ -752,13 +752,13 @@ files = [
 
 [[package]]
 name = "fastapi"
-version = "0.115.11"
+version = "0.115.12"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "fastapi-0.115.11-py3-none-any.whl", hash = "sha256:32e1541b7b74602e4ef4a0260ecaf3aadf9d4f19590bba3e1bf2ac4666aa2c64"},
-    {file = "fastapi-0.115.11.tar.gz", hash = "sha256:cc81f03f688678b92600a65a5e618b93592c65005db37157147204d8924bf94f"},
+    {file = "fastapi-0.115.12-py3-none-any.whl", hash = "sha256:e94613d6c05e27be7ffebdd6ea5f388112e5e430c8f7d6494a9d1d88d43e814d"},
+    {file = "fastapi-0.115.12.tar.gz", hash = "sha256:1e2c2a2646905f9e83d32f04a3f86aff4a286669c6c950ca95b5fd68c2602681"},
 ]
 
 [package.dependencies]
@@ -1396,13 +1396,13 @@ tests = ["pytest", "simplejson"]
 
 [[package]]
 name = "mcp"
-version = "1.4.1"
+version = "1.5.0"
 description = "Model Context Protocol SDK"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "mcp-1.4.1-py3-none-any.whl", hash = "sha256:a7716b1ec1c054e76f49806f7d96113b99fc1166fc9244c2c6f19867cb75b593"},
-    {file = "mcp-1.4.1.tar.gz", hash = "sha256:b9655d2de6313f9d55a7d1df62b3c3fe27a530100cc85bf23729145b0dba4c7a"},
+    {file = "mcp-1.5.0-py3-none-any.whl", hash = "sha256:51c3f35ce93cb702f7513c12406bbea9665ef75a08db909200b07da9db641527"},
+    {file = "mcp-1.5.0.tar.gz", hash = "sha256:5b2766c05e68e01a2034875e250139839498c61792163a7b221fc170c12f5aa9"},
 ]
 
 [package.dependencies]
@@ -2897,4 +2897,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "9d239f5b5783a4673c00210891ee3b968d5ce4b69a57faf35d1f1cca9b7cb30c"
+content-hash = "d497e1648165929187abaf5adf83a151e6c2e2bce2933a450afcb3496da04c55"
