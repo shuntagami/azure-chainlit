@@ -6,8 +6,6 @@ from openai import OpenAI
 from fastapi import Request, Response
 from sqlalchemy import text
 from settings import get_db, Config
-import io
-from typing import Any, Dict, Union
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
