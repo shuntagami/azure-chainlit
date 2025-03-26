@@ -6,6 +6,7 @@ from openai import OpenAI
 from fastapi import Request, Response
 from sqlalchemy import text
 from settings import get_db, Config
+import asyncio
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
@@ -62,36 +63,65 @@ async def health_check_middleware(request: Request, call_next):
 @cl.on_chat_start
 async def start():
     """チャットセッション開始時に実行される関数"""
-    cl.user_session.set(
-        "messages",
-        [{"role": "system", "content": "あなたは親切なAIアシスタントです。"}]
+    # アシスタントの作成
+    assistant = await openai_client.beta.assistants.create(
+        name="AIアシスタント",
+        instructions="あなたは親切なAIアシスタントです。",
+        model="gpt-3.5-turbo",
+        tools=[{"type": "code_interpreter"}]
     )
+
+    # スレッドの作成
+    thread = await openai_client.beta.threads.create()
+
+    # セッションにアシスタントとスレッドの情報を保存
+    cl.user_session.set("assistant", assistant)
+    cl.user_session.set("thread", thread)
+
     await cl.Message(content="こんにちは！何かお手伝いできることはありますか？").send()
 
 @cl.on_message
 async def main(message: cl.Message):
     """ユーザーメッセージを受け取った時に実行される関数"""
-    # セッションから今までのメッセージ履歴を取得
-    messages = cl.user_session.get("messages")
+    # セッションからアシスタントとスレッドの情報を取得
+    assistant = cl.user_session.get("assistant")
+    thread = cl.user_session.get("thread")
 
-    # ユーザーの新しいメッセージを追加
-    messages.append({"role": "user", "content": message.content})
-
-    # OpenAI APIを使用してレスポンスを生成
-    response = openai_client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.7
+    # メッセージをスレッドに追加
+    await openai_client.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=message.content
     )
 
-    assistant_message = response.choices[0].message
-    messages.append({"role": "assistant", "content": assistant_message.content})
+    # アシスタントを実行
+    run = await openai_client.beta.threads.runs.create(
+        thread_id=thread.id,
+        assistant_id=assistant.id
+    )
 
-    # 更新したメッセージ履歴をセッションに保存
-    cl.user_session.set("messages", messages)
+    # 実行が完了するまで待機
+    while True:
+        run = await openai_client.beta.threads.runs.retrieve(
+            thread_id=thread.id,
+            run_id=run.id
+        )
+        if run.status == "completed":
+            break
+        elif run.status == "failed":
+            raise Exception("Assistant run failed")
+        await asyncio.sleep(1)
 
-    # 生成されたレスポンスを送信
-    await cl.Message(content=assistant_message.content).send()
+    # 最新のメッセージを取得
+    messages = await openai_client.beta.threads.messages.list(
+        thread_id=thread.id
+    )
+
+    # アシスタントの最新のメッセージを送信
+    for msg in messages.data:
+        if msg.role == "assistant":
+            await cl.Message(content=msg.content[0].text.value).send()
+            break
 
 @cl.password_auth_callback
 def auth_callback(username: str, password: str) -> bool:
@@ -104,4 +134,4 @@ def auth_callback(username: str, password: str) -> bool:
             metadata={"role": "admin", "provider": "credentials"},
         )
     else:
-        return False  # Fixed return type issue: return False instead of None
+        return False
