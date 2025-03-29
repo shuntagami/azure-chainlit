@@ -5,7 +5,7 @@ from chainlit.data.storage_clients.azure_blob import AzureBlobStorageClient
 from openai import AsyncAzureOpenAI
 from fastapi import Request, Response
 from sqlalchemy import text
-from settings import get_db, Config
+from settings import get_db, Config, chat_settings
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
@@ -31,6 +31,7 @@ BlobServiceClient.from_connection_string = patched_from_connection_string
 openai_client = AsyncAzureOpenAI(
     api_key=Config.OPENAI_API_KEY,
     azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
+    api_version=Config.OPENAI_API_VERSION,
 )
 
 storage_client = AzureBlobStorageClient(
@@ -64,7 +65,7 @@ async def health_check_middleware(request: Request, call_next):
 async def start():
     """チャットセッション開始時に実行される関数"""
     cl.user_session.set(
-        "messages",
+        "message_history",
         [{"role": "system", "content": "あなたは親切なAIアシスタントです。"}]
     )
     await cl.Message(content="こんにちは！何かお手伝いできることはありますか？").send()
@@ -72,27 +73,23 @@ async def start():
 @cl.on_message
 async def main(message: cl.Message):
     """ユーザーメッセージを受け取った時に実行される関数"""
-    # セッションから今までのメッセージ履歴を取得
-    messages = cl.user_session.get("messages")
+    message_history = cl.user_session.get("message_history")
+    message_history.append({"role": "user", "content": message.content})
 
-    # ユーザーの新しいメッセージを追加
-    messages.append({"role": "user", "content": message.content})
+    msg = cl.Message(content="")
 
-    # OpenAI APIを使用してレスポンスを生成
-    response = await openai_client.chat.completions.create(
-        model="gpt-35-turbo",
-        messages=messages,
-        temperature=0.7
+    stream = await openai_client.chat.completions.create(
+        messages=message_history,
+        **chat_settings()
     )
 
-    assistant_message = response.choices[0].message
-    messages.append({"role": "assistant", "content": assistant_message.content})
+    async for part in stream:
+        if part.choices and len(part.choices) > 0:
+            if token := part.choices[0].delta.content or "":
+                await msg.stream_token(token)
 
-    # 更新したメッセージ履歴をセッションに保存
-    cl.user_session.set("messages", messages)
-
-    # 生成されたレスポンスを送信
-    await cl.Message(content=assistant_message.content).send()
+    message_history.append({"role": "assistant", "content": msg.content})
+    await msg.update()
 
 @cl.password_auth_callback
 def auth_callback(username: str, password: str) -> bool:

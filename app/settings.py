@@ -32,3 +32,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def chat_settings():
+    return {
+        "model": "gpt-35-turbo",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "stream": True
+    }
