@@ -10,6 +10,7 @@ services:
       APP_DATABASE_USERNAME: "postgres"
       APP_DATABASE_PASSWORD: "password"
       APP_DATABASE_NAME: "chainlit"
+      AZURE_OPENAI_ENDPOINT: "https://shuntagami.openai.azure.com/"
       AZURE_STORAGE_ACCOUNT: "devstoreaccount1"
       AZURE_STORAGE_KEY: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
       BLOB_CONTAINER_NAME: "shuntagami-chainlit-app"

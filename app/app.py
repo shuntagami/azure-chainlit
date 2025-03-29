@@ -2,7 +2,7 @@ import chainlit as cl
 import chainlit.data as cl_data
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.azure_blob import AzureBlobStorageClient
-from openai import OpenAI
+from openai import AsyncAzureOpenAI
 from fastapi import Request, Response
 from sqlalchemy import text
 from settings import get_db, Config
@@ -28,8 +28,9 @@ def patched_from_connection_string(connection_string, **kwargs):
 BlobServiceClient.from_connection_string = patched_from_connection_string
 
 # OpenAI クライアントの初期化
-openai_client = OpenAI(
+openai_client = AsyncAzureOpenAI(
     api_key=Config.OPENAI_API_KEY,
+    azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
 )
 
 storage_client = AzureBlobStorageClient(
@@ -78,8 +79,8 @@ async def main(message: cl.Message):
     messages.append({"role": "user", "content": message.content})
 
     # OpenAI APIを使用してレスポンスを生成
-    response = openai_client.chat.completions.create(
-        model="gpt-3.5-turbo",
+    response = await openai_client.chat.completions.create(
+        model="gpt-35-turbo",
         messages=messages,
         temperature=0.7
     )

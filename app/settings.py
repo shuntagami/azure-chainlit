@@ -15,6 +15,7 @@ class Config:
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
 
+    AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     # Azure Storage settings
     AZURE_STORAGE_ACCOUNT = os.getenv("AZURE_STORAGE_ACCOUNT")
     AZURE_STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY")
