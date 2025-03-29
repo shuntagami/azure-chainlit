@@ -14,6 +14,7 @@ class Config:
     # OpenAI settings
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
+    OPENAI_ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
 
     AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     # Azure Storage settings

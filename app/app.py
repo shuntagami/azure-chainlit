@@ -32,6 +32,10 @@ async_openai_client = AsyncAzureOpenAI(
     api_version=Config.OPENAI_API_VERSION,
 )
 
+assistant = async_openai_client.beta.assistants.retrieve(
+    assistant_id=Config.OPENAI_ASSISTANT_ID
+)
+
 storage_client = AzureBlobStorageClient(
     container_name=Config.BLOB_CONTAINER_NAME,
     storage_account=Config.AZURE_STORAGE_ACCOUNT,
