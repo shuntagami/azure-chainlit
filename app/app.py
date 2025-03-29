@@ -1,9 +1,21 @@
+import plotly
+from pathlib import Path
+from typing import List
+
 import chainlit as cl
 import chainlit.data as cl_data
+from chainlit.config import config
+from chainlit.element import Element
+from chainlit.context import local_steps
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 from chainlit.data.storage_clients.azure_blob import AzureBlobStorageClient
-from openai import AsyncAzureOpenAI
-from settings import Config, chat_settings
+
+from openai import AsyncAzureOpenAI, AsyncAssistantEventHandler
+from openai.types.beta.threads.runs import RunStep
+
+from literalai.helper import utc_now
+
+from settings import Config
 
 # モンキーパッチの適用
 from azure.storage.blob.aio import BlobServiceClient
@@ -32,9 +44,7 @@ async_openai_client = AsyncAzureOpenAI(
     api_version=Config.OPENAI_API_VERSION,
 )
 
-assistant = async_openai_client.beta.assistants.retrieve(
-    assistant_id=Config.OPENAI_ASSISTANT_ID
-)
+assistant = None
 
 storage_client = AzureBlobStorageClient(
     container_name=Config.BLOB_CONTAINER_NAME,
@@ -43,35 +53,194 @@ storage_client = AzureBlobStorageClient(
 )
 cl_data._data_layer = SQLAlchemyDataLayer(conninfo=Config.ASYNC_DATABASE_URL, storage_provider=storage_client)
 
+class EventHandler(AsyncAssistantEventHandler):
+    def __init__(self, assistant_name: str) -> None:
+        super().__init__()
+        self.current_message: cl.Message = None
+        self.current_step: cl.Step = None
+        self.current_tool_call = None
+        self.assistant_name = assistant_name
+        previous_steps = local_steps.get() or []
+        parent_step = previous_steps[-1] if previous_steps else None
+        if parent_step:
+            self.parent_id = parent_step.id
+
+    async def on_run_step_created(self, run_step: RunStep) -> None:
+        cl.user_session.set("run_step", run_step)
+
+    async def on_text_created(self, text) -> None:
+        self.current_message = await cl.Message(
+            author=self.assistant_name, content=""
+        ).send()
+
+    async def on_text_delta(self, delta, snapshot):
+        if delta.value:
+            await self.current_message.stream_token(delta.value)
+
+    async def on_text_done(self, text):
+        await self.current_message.update()
+        if text.annotations:
+            for annotation in text.annotations:
+                if annotation.type == "file_path":
+                    response = (
+                        await async_openai_client.files.with_raw_response.content(
+                            annotation.file_path.file_id
+                        )
+                    )
+                    file_name = annotation.text.split("/")[-1]
+                    try:
+                        fig = plotly.io.from_json(response.content)
+                        element = cl.Plotly(name=file_name, figure=fig)
+                        await cl.Message(content="", elements=[element]).send()
+                    except Exception as e:
+                        element = cl.File(content=response.content, name=file_name)
+                        await cl.Message(content="", elements=[element]).send()
+                    # Hack to fix links
+                    if (
+                        annotation.text in self.current_message.content
+                        and element.chainlit_key
+                    ):
+                        self.current_message.content = self.current_message.content.replace(
+                            annotation.text,
+                            f"/project/file/{element.chainlit_key}?session_id={cl.context.session.id}",
+                        )
+                        await self.current_message.update()
+
+    async def on_tool_call_created(self, tool_call):
+        self.current_tool_call = tool_call.id
+        self.current_step = cl.Step(
+            name=tool_call.type, type="tool", parent_id=self.parent_id
+        )
+        self.current_step.show_input = "python"
+        self.current_step.start = utc_now()
+        await self.current_step.send()
+
+    async def on_tool_call_delta(self, delta, snapshot):
+        if snapshot.id != self.current_tool_call:
+            self.current_tool_call = snapshot.id
+            self.current_step = cl.Step(
+                name=delta.type, type="tool", parent_id=self.parent_id
+            )
+            self.current_step.start = utc_now()
+            if snapshot.type == "code_interpreter":
+                self.current_step.show_input = "python"
+            if snapshot.type == "function":
+                self.current_step.name = snapshot.function.name
+                self.current_step.language = "json"
+            await self.current_step.send()
+
+        if delta.type == "function":
+            pass
+
+        if delta.type == "code_interpreter":
+            if delta.code_interpreter.outputs:
+                for output in delta.code_interpreter.outputs:
+                    if output.type == "logs":
+                        self.current_step.output += output.logs
+                        self.current_step.language = "markdown"
+                        self.current_step.end = utc_now()
+                        await self.current_step.update()
+                    elif output.type == "image":
+                        self.current_step.language = "json"
+                        self.current_step.output = output.image.model_dump_json()
+            else:
+                if delta.code_interpreter.input:
+                    await self.current_step.stream_token(
+                        delta.code_interpreter.input, is_input=True
+                    )
+
+    async def on_event(self, event) -> None:
+        if event.event == "error":
+            return cl.ErrorMessage(content=str(event.data.message)).send()
+
+    async def on_exception(self, exception: Exception) -> None:
+        return cl.ErrorMessage(content=str(exception)).send()
+
+    async def on_tool_call_done(self, tool_call):
+        self.current_step.end = utc_now()
+        await self.current_step.update()
+
+    async def on_image_file_done(self, image_file):
+        image_id = image_file.file_id
+        response = await async_openai_client.files.with_raw_response.content(image_id)
+        image_element = cl.Image(
+            name=image_id, content=response.content, display="inline", size="large"
+        )
+        if not self.current_message.elements:
+            self.current_message.elements = []
+        self.current_message.elements.append(image_element)
+        await self.current_message.update()
+
+
+async def upload_files(files: List[Element]):
+    file_ids = []
+    for file in files:
+        uploaded_file = await async_openai_client.files.create(
+            file=Path(file.path), purpose="assistants"
+        )
+        file_ids.append(uploaded_file.id)
+    return file_ids
+
+
+async def process_files(files: List[Element]):
+    # Upload files if any and get file_ids
+    file_ids = []
+    if len(files) > 0:
+        file_ids = await upload_files(files)
+
+    return [
+        {
+            "file_id": file_id,
+            "tools": [{"type": "code_interpreter"}, {"type": "file_search"}]
+            if file.mime
+            in [
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "text/markdown",
+                "application/pdf",
+                "text/plain",
+            ]
+            else [{"type": "code_interpreter"}],
+        }
+        for file_id, file in zip(file_ids, files)
+    ]
+
+
+@cl.set_starters
+async def set_starters():
+    return [
+        cl.Starter(
+            label="Run Tesla stock analysis",
+            message="Make a data analysis on the tesla-stock-price.csv file I previously uploaded.",
+            icon="/public/write.svg",
+        ),
+        cl.Starter(
+            label="Run a data analysis on my CSV",
+            message="Make a data analysis on the next CSV file I will upload.",
+            icon="/public/write.svg",
+        ),
+    ]
+
+
 @cl.on_chat_start
-async def start():
-    """チャットセッション開始時に実行される関数"""
-    cl.user_session.set(
-        "message_history",
-        [{"role": "system", "content": "あなたは親切なAIアシスタントです。"}]
-    )
-    await cl.Message(content="こんにちは！何かお手伝いできることはありますか？").send()
+async def start_chat():
+    global assistant
+    if assistant is None:
+        assistant = await async_openai_client.beta.assistants.retrieve(
+            assistant_id=Config.OPENAI_ASSISTANT_ID
+        )
+    # Create a Thread
+    thread = await async_openai_client.beta.threads.create()
+    # Store thread ID in user session for later use
+    cl.user_session.set("thread_id", thread.id)
 
-@cl.on_message
-async def main(message: cl.Message):
-    """ユーザーメッセージを受け取った時に実行される関数"""
-    message_history = cl.user_session.get("message_history")
-    message_history.append({"role": "user", "content": message.content})
 
-    msg = cl.Message(content="")
-
-    stream = await async_openai_client.chat.completions.create(
-        messages=message_history,
-        **chat_settings()
-    )
-
-    async for part in stream:
-        if part.choices and len(part.choices) > 0:
-            if token := part.choices[0].delta.content or "":
-                await msg.stream_token(token)
-
-    message_history.append({"role": "assistant", "content": msg.content})
-    await msg.update()
+@cl.on_stop
+async def stop_chat():
+    current_run_step: RunStep = cl.user_session.get("run_step")
+    if current_run_step:
+        await async_openai_client.beta.threads.runs.cancel(
+            thread_id=current_run_step.thread_id, run_id=current_run_step.run_id
+        )
 
 @cl.password_auth_callback
 def auth_callback(username: str, password: str) -> bool:
@@ -85,3 +254,25 @@ def auth_callback(username: str, password: str) -> bool:
         )
     else:
         return False  # Fixed return type issue: return False instead of None
+
+
+@cl.on_message
+async def main(message: cl.Message):
+    thread_id = cl.user_session.get("thread_id")
+
+    attachments = await process_files([el for el in message.elements if el.path])
+
+    # Add a Message to the Thread
+    oai_message = await async_openai_client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=message.content,
+        attachments=attachments,
+    )
+
+    async with async_openai_client.beta.threads.runs.stream(
+        thread_id=thread_id,
+        assistant_id=assistant.id,
+        event_handler=EventHandler(assistant_name=assistant.name),
+    ) as stream:
+        await stream.until_done()
