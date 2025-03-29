@@ -28,7 +28,7 @@ def patched_from_connection_string(connection_string, **kwargs):
 BlobServiceClient.from_connection_string = patched_from_connection_string
 
 # OpenAI クライアントの初期化
-openai_client = AsyncAzureOpenAI(
+async_openai_client = AsyncAzureOpenAI(
     api_key=Config.OPENAI_API_KEY,
     azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
     api_version=Config.OPENAI_API_VERSION,
@@ -78,7 +78,7 @@ async def main(message: cl.Message):
 
     msg = cl.Message(content="")
 
-    stream = await openai_client.chat.completions.create(
+    stream = await async_openai_client.chat.completions.create(
         messages=message_history,
         **chat_settings()
     )
