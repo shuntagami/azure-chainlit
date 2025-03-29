@@ -4,5 +4,6 @@ terraform.tfvars
 terraform.tfstate
 terraform.tfstate.backup
 app/.chainlit/translations/*
+.chainlit/*
 azurite
 app/.files

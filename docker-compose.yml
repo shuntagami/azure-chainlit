@@ -18,7 +18,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./app:/app/app_source
+      - .:/workspace
+    working_dir: /workspace
     depends_on:
       - db
       - azurite
