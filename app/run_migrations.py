@@ -6,6 +6,11 @@ import time
 from alembic import command
 from alembic.config import Config
 
+# /workspace ディレクトリをPythonパスに追加
+workspace_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if workspace_dir not in sys.path:
+    sys.path.insert(0, workspace_dir)
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,8 +18,10 @@ logger = logging.getLogger(__name__)
 def run_migrations():
     """Run database migrations"""
     try:
-        # Get alembic.ini file path (Docker container's /app directory)
-        alembic_ini_path = "alembic.ini"  # Working directory is already /app
+        # Get alembic.ini file path
+        # 以前: alembic_ini_path = "alembic.ini"  # Working directory is already /app
+        # 修正: /workspace から実行されるため、app/ ディレクトリを指定
+        alembic_ini_path = os.path.join(os.path.dirname(__file__), "alembic.ini")
 
         if not os.path.exists(alembic_ini_path):
             logger.error(f"alembic.ini file not found: {alembic_ini_path}")
@@ -22,6 +29,11 @@ def run_migrations():
 
         # Create Alembic Config object
         alembic_cfg = Config(alembic_ini_path)
+
+        # 修正: migrations ディレクトリのパスを明示的に設定
+        # script_location を app/migrations に設定（現在のファイルと同じディレクトリの migrations）
+        migrations_path = os.path.join(os.path.dirname(__file__), "migrations")
+        alembic_cfg.set_main_option("script_location", migrations_path)
 
         # Display current migration state
         logger.info("Checking current migration status...")

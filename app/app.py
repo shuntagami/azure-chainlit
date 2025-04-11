@@ -39,10 +39,10 @@ async def start_chat():
     """Initialize the chat session with a new thread"""
     # Get or create the assistant
     assistant = await get_assistant()
-    
+
     # Create a Thread
     thread = await async_openai_client.beta.threads.create()
-    
+
     # Store thread ID in user session for later use
     cl.user_session.set("thread_id", thread.id)
 
@@ -53,11 +53,24 @@ async def stop_chat():
     if current_run_step:
         try:
             await async_openai_client.beta.threads.runs.cancel(
-                thread_id=current_run_step.thread_id, 
+                thread_id=current_run_step.thread_id,
                 run_id=current_run_step.run_id
             )
         except Exception as e:
             await cl.ErrorMessage(content=f"Error canceling run: {str(e)}").send()
+
+@cl.password_auth_callback
+def auth_callback(username: str, password: str) -> bool:
+    if (
+        username in ["shuntagami23@gmail.com"]  # fmt: skip
+        and password == "password123"
+    ):
+        return cl.User(
+            identifier=username,
+            metadata={"role": "admin", "provider": "credentials"},
+        )
+    else:
+        return False  # Fixed return type issue: return False instead of None
 
 @cl.on_message
 async def main(message: cl.Message):
@@ -67,14 +80,14 @@ async def main(message: cl.Message):
     if not thread_id:
         await cl.ErrorMessage(content="Chat session not initialized properly. Please refresh.").send()
         return
-    
+
     try:
         # Process any file attachments
         attachments = await process_files([el for el in message.elements if el.path])
-        
+
         # Get the current assistant
         assistant = await get_assistant()
-        
+
         # Add user message to the thread
         await async_openai_client.beta.threads.messages.create(
             thread_id=thread_id,
@@ -82,7 +95,7 @@ async def main(message: cl.Message):
             content=message.content,
             attachments=attachments,
         )
-        
+
         # Stream the assistant's response
         async with async_openai_client.beta.threads.runs.stream(
             thread_id=thread_id,
@@ -90,6 +103,6 @@ async def main(message: cl.Message):
             event_handler=EventHandler(assistant_name=assistant.name),
         ) as stream:
             await stream.until_done()
-            
+
     except Exception as e:
         await cl.ErrorMessage(content=f"Error processing message: {str(e)}").send()
