@@ -14,7 +14,6 @@ class Config:
     # OpenAI settings
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     OPENAI_API_VERSION = os.getenv("OPENAI_API_VERSION")
-    OPENAI_ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
 
     AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     # Azure Storage settings
@@ -33,3 +32,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def chat_settings():
+    return {
+        "model": "gpt-35-turbo",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "stream": True
+    }
