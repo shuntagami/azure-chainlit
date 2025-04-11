@@ -6,7 +6,6 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_API_VERSION: "2025-02-01-preview"
-      OPENAI_ASSISTANT_ID: "asst_xloMWtX8oXDAEJtfHOedDpSA"
       APP_DATABASE_HOST: "db"
       APP_DATABASE_USERNAME: "postgres"
       APP_DATABASE_PASSWORD: "password"
