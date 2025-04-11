@@ -1,50 +1,56 @@
+#!/usr/bin/env python
 import argparse
-from settings import get_db, Base, engine
-from models import User
 import logging
 from datetime import datetime
 
+from app.services.database import Base, engine, get_db
+from app.models import User
+from app.config import config
+
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def setup_database():
-    """データベースの初期設定を行います"""
+    """Initialize database tables if they don't exist"""
     try:
-        # テーブルの作成（存在しない場合）
-        logger.info("データベーステーブルを初期化しています...")
+        logger.info("Initializing database tables...")
         Base.metadata.create_all(engine)
-        logger.info("データベースの初期化が完了しました")
+        logger.info("Database initialization complete")
     except Exception as e:
-        logger.error(f"データベースの初期化中にエラーが発生しました: {e}")
+        logger.error(f"Error during database initialization: {e}")
         raise
 
 def seed_user(identifier):
     """
-    指定されたメールアドレスとパスワードでユーザーを作成または更新します
+    Create or update a user with the specified identifier
+    
+    Args:
+        identifier: User email or other unique identifier
     """
     db = next(get_db())
 
     try:
-        # ユーザーが存在するか確認
+        # Check if user exists
         user = db.query(User).filter(User.identifier == identifier).first()
 
-        # ユーザーのメタデータを設定
+        # Set user metadata
         metadata = {
             "name": "Default User",
-            "role": "user",
+            "role": "admin",
             "created_at": datetime.now().isoformat(),
             "last_login": datetime.now().isoformat(),
             "preferences": {
                 "theme": "light",
-                "language": "ja"
+                "language": "en"
             }
         }
 
         if user:
-            logger.info(f"既存ユーザー '{identifier}' を更新します")
+            logger.info(f"Updating existing user '{identifier}'")
             user.metadata_ = metadata
         else:
-            logger.info(f"新規ユーザー '{identifier}' を作成します")
+            logger.info(f"Creating new user '{identifier}'")
             user = User(
                 identifier=identifier,
                 metadata_=metadata,
@@ -52,29 +58,32 @@ def seed_user(identifier):
             )
             db.add(user)
 
-        # 変更をコミット
+        # Commit changes
         db.commit()
-        logger.info(f"ユーザー '{identifier}' の設定が完了しました")
+        logger.info(f"User '{identifier}' configuration completed")
 
         return user
     except Exception as e:
         db.rollback()
-        logger.error(f"ユーザー '{identifier}' の作成/更新中にエラーが発生しました: {e}")
+        logger.error(f"Error during user '{identifier}' creation/update: {e}")
         raise
 
 def main():
-    parser = argparse.ArgumentParser(description='データベースのシード処理を実行します')
-    parser.add_argument('--identifier', default="shuntagami23@gmail.com", help='ユーザーのメールアドレス')
+    parser = argparse.ArgumentParser(description='Run database seed operations')
+    parser.add_argument('--email', default=config.DEFAULT_ADMIN_EMAIL, 
+                        help='User email address')
+    parser.add_argument('--password', default=config.DEFAULT_ADMIN_PASSWORD,
+                        help='User password (not stored, used for authentication only)')
 
     args = parser.parse_args()
 
-    # データベースの初期化
+    # Initialize database
     setup_database()
 
-    # デフォルトユーザーの作成
-    seed_user(args.identifier)
+    # Create default user
+    seed_user(args.email)
 
-    logger.info("シード処理が完了しました")
+    logger.info("Seed operations completed")
 
 if __name__ == "__main__":
     main()

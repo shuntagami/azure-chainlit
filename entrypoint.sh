@@ -6,8 +6,10 @@ service ssh start
 
 # データベースマイグレーションを実行
 echo "データベースマイグレーションを実行中..."
-cd /workspace/app
-python ./run_migrations.py
+# 以前: cd /workspace/app と app ディレクトリ内で実行していた
+# 修正: workspace ディレクトリからモジュールとして実行
+cd /workspace
+python -m app.run_migrations
 echo "マイグレーション処理が完了しました"
 
 # アプリケーションを起動

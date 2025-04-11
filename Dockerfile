@@ -20,6 +20,9 @@ RUN poetry config virtualenvs.create false
 # 依存関係ファイルのコピーとインストール
 RUN poetry install --no-interaction --no-ansi --only main --no-root
 
+# 明示的に最新のOpenAIパッケージをインストール
+RUN pip install --no-cache-dir --upgrade openai>=1.18.0
+
 # Expose ports for the app and SSH
 EXPOSE 8000 2222
 

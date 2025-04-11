@@ -1,8 +1,8 @@
+from app.services.database import Base
+
 import uuid
 from sqlalchemy import Column, String, ForeignKey, Boolean, Integer, ARRAY, Text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from settings import Base
-
 class User(Base):
     __tablename__ = "users"
 
