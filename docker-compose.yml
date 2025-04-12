@@ -24,6 +24,19 @@ services:
     depends_on:
       - db
       - azurite
+      # - mcp-server
+
+  mcp-server:
+    build:
+      context: ./javascript
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace/javascript
+    environment:
+      TZ: "Asia/Tokyo"
+    # volumes:
+    #   - ./javascript:/app
   db:
     image: postgres:latest
     environment:
