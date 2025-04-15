@@ -34,7 +34,17 @@ auto_tag_thread = true
 # Allow users to edit their own messages
 edit_message = true
 
-# Authorize users to spontaneously upload files with messages
+# 追加: MCP機能の設定
+[features.mcp.sse]
+    # SSE接続タイプを有効化
+    enabled = true
+
+[features.mcp.stdio]
+    # stdio接続タイプを有効化（オプション）
+    enabled = true
+    # 許可される実行ファイルのリスト
+    allowed_executables = [ "npx", "node" ]
+
 [features.spontaneous_file_upload]
     enabled = true
     # Define accepted file types using MIME types

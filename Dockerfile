@@ -11,6 +11,12 @@ RUN apt-get update \
   && echo "root:Docker!" | chpasswd \
   && chmod u+x ./entrypoint.sh
 
+# Node.jsとnpmのインストール
+RUN apt-get install -y --no-install-recommends curl \
+  && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+  && apt-get install -y --no-install-recommends nodejs \
+  && npm install -g npm
+
 # Poetryのインストール
 RUN pip install poetry
 
