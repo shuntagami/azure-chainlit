@@ -4,11 +4,7 @@ set -e
 # SSHサービスを開始
 service ssh start
 
-# データベースマイグレーションを実行
-echo "データベースマイグレーションを実行中..."
 cd /workspace/app
-python ./run_migrations.py
-echo "マイグレーション処理が完了しました"
 
 # アプリケーションを起動
 echo "アプリケーションを起動中..."
