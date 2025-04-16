@@ -17,7 +17,7 @@ services:
       CHAINLIT_AUTH_SECRET: "Z,KKQ9_xYuteGo:WBbfY:0JXfX^Q~oEZb-m,dp0z6rdvsM7v2YQd^HhsemxmRf.Q"
       TZ: "Asia/Tokyo"
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - .:/workspace
     working_dir: /workspace
@@ -32,18 +32,16 @@ services:
       POSTGRES_DB: "chainlit"
       TZ: "Asia/Tokyo"
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
-    container_name: azurite
-    restart: always
     ports:
-      - "10000:10000"
-      - "10001:10001"
-      - "10002:10002"
+      - "10010:10000"
+      - "10011:10001"
+      - "10012:10002"
     volumes:
       - ./azurite:/data
 volumes:
