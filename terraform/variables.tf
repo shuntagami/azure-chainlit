@@ -141,3 +141,14 @@ variable "chainlit_auth_secret" {
   type        = string
   sensitive   = true
 }
+# Azure DevOps configuration variables
+variable "azure_devops_project_name" {
+  description = "Name of the Azure DevOps project"
+  type        = string
+  default     = "Chainlit-App"
+}
+
+variable "subscription_name" {
+  description = "Azure subscription name"
+  type        = string
+}
