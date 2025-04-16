@@ -2,26 +2,34 @@ FROM python:3.13-slim
 
 WORKDIR /workspace
 
-COPY . .
+# Copy only necessary files first for better layer caching
+COPY pyproject.toml poetry.lock ./
+COPY sshd_config /etc/ssh/
+COPY entrypoint.sh ./
+RUN chmod u+x ./entrypoint.sh
 
-# Install and configure SSH
+# Install system dependencies and clean up in the same layer to reduce image size
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends dialog \
-  && apt-get install -y --no-install-recommends openssh-server \
-  && echo "root:Docker!" | chpasswd \
-  && chmod u+x ./entrypoint.sh
+  && apt-get install -y --no-install-recommends dialog openssh-server \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* \
+  && echo "root:Docker!" | chpasswd
 
-# Poetryのインストール
-RUN pip install poetry
+# Install Poetry and dependencies
+RUN pip install --no-cache-dir poetry \
+  && poetry config virtualenvs.create false \
+  && poetry install --no-interaction --no-ansi --only main --no-root \
+  && pip cache purge
 
-# Poetryの設定: 仮想環境を作成しない
-RUN poetry config virtualenvs.create false
-
-# 依存関係ファイルのコピーとインストール
-RUN poetry install --no-interaction --no-ansi --only main --no-root
+# Copy application code after installing dependencies
+COPY . .
 
 # Expose ports for the app and SSH
 EXPOSE 8000 2222
+
+# Set healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/ || exit 1
 
 # Use our entrypoint script
 ENTRYPOINT ["./entrypoint.sh"]
